@@ -251,6 +251,7 @@ GameObject:
   - component: {fileID: 388745109}
   - component: {fileID: 388745108}
   - component: {fileID: 388745107}
+  - component: {fileID: 388745110}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -332,6 +333,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &388745110
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 388745106}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c3506888cff2c74bb2889562d17222b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mouseInfluence: 10
+  lerpSpeed: 2
+  maxDistance: 30
+  enableShake: 1
 --- !u!1 &1049304479
 GameObject:
   m_ObjectHideFlags: 0
@@ -503,7 +520,7 @@ MonoBehaviour:
   level1Button: {fileID: 1443938373}
   level2Button: {fileID: 82364392}
   level3Button: {fileID: 1592425112}
-  returnButton: {fileID: 1837984865}
+  backButton: {fileID: 1837984865}
 --- !u!114 &1190345981
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1374,7 +1391,7 @@ MonoBehaviour:
   level1Button: {fileID: 1443938373}
   level2Button: {fileID: 82364392}
   level3Button: {fileID: 1592425112}
-  returnButton: {fileID: 0}
+  backButton: {fileID: 1837984865}
 --- !u!1 &2107700252
 GameObject:
   m_ObjectHideFlags: 0

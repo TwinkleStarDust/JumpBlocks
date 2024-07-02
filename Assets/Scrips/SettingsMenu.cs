@@ -17,12 +17,12 @@ public class SettingsMenu : MonoBehaviour
         sfxToggle.onValueChanged.AddListener(SetSFX);
         backButton.onClick.AddListener(CloseSettings);
 
-        // Load saved settings
+        // 加载保存设置
         bgmToggle.isOn = PlayerPrefs.GetInt("背景音乐", 1) == 1;
         sfxToggle.isOn = PlayerPrefs.GetInt("音效", 1) == 1;
         sfxEnabled = sfxToggle.isOn;
 
-        // Apply saved settings
+        // 应用保存的设置
         SetBGM(bgmToggle.isOn);
         SetSFX(sfxToggle.isOn);
 

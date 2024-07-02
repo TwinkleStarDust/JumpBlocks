@@ -18,43 +18,26 @@ public class PlayerController : MonoBehaviour
 
     private Vector2 initialPosition;
     private WinManager winManager;
-    private SettingsMenu settingsMenu; // 引用SettingsMenu
+    private SettingsMenu settingsMenu; 
 
-    // 新增：音效
-    public AudioClip jumpSound; // 确保这个字段是public
-    public AudioClip WinSound; // 成功音效
-    public AudioClip LoseSound; // 失败音效
+    public AudioClip jumpSound; 
+    public AudioClip WinSound; 
+    public AudioClip LoseSound; 
 
     private AudioSource audioSource; // 新增：音频源
 
-    // Start is called before the first frame update
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         step = FindObjectOfType<GameManager>().step;
         initialPosition = transform.position; // 记录初始位置
-        winManager = FindObjectOfType<WinManager>(); // 获取 WinManager 引用
-        settingsMenu = FindObjectOfType<SettingsMenu>(); // 获取 SettingsMenu 引用
+        winManager = FindObjectOfType<WinManager>(); 
+        settingsMenu = FindObjectOfType<SettingsMenu>(); 
 
-        if (winManager == null)
-        {
-            Debug.LogError("WinManager not found in the scene.");
-        }
-
-        if (settingsMenu == null)
-        {
-            Debug.LogError("SettingsMenu not found in the scene.");
-        }
-        else
-        {
-            Debug.Log("SettingsMenu successfully found.");
-        }
-
-        audioSource = gameObject.AddComponent<AudioSource>(); // 添加音频源组件
+        audioSource = gameObject.AddComponent<AudioSource>(); 
         audioSource.volume = 0.3f; // 设置音量
     }
 
-    // Update is called once per frame
     void Update()
     {
         if (hasFinished || hasDied) // 如果游戏结束或玩家死亡，停止输入检测

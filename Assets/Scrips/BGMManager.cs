@@ -18,7 +18,7 @@ public class BGMManager : MonoBehaviour
         }
     }
 
-    // ”√”⁄≤•∑≈±≥æ∞“Ù¿÷
+    // ≤•∑≈±≥æ∞“Ù¿÷
     public void PlayBGM()
     {
         if (!bgmAudioSource.isPlaying)
@@ -27,7 +27,7 @@ public class BGMManager : MonoBehaviour
         }
     }
 
-    // ”√”⁄Õ£÷π±≥æ∞“Ù¿÷
+    // Õ£÷π±≥æ∞“Ù¿÷
     public void StopBGM()
     {
         if (bgmAudioSource.isPlaying)

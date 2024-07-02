@@ -1,12 +1,12 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using TMPro; // 引用 TextMeshPro 命名空间
+using TMPro; 
 
 public class WinManager : MonoBehaviour
 {
     public GameObject winPanel;
-    public TextMeshProUGUI winText; // 修改为 TextMeshProUGUI
+    public TextMeshProUGUI winText; 
     public Button retryButton;
     public Button levelSelectButton;
 
