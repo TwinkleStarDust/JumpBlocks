@@ -38,12 +38,12 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 705507994}
-  m_IndirectSpecularColor: {r: 0.18028378, g: 0.22571412, b: 0.30692285, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 12
+  serializedVersion: 13
+  m_BakeOnSceneLoad: 0
   m_GISettings:
     serializedVersion: 2
     m_BounceScale: 1
@@ -408,10 +408,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   groundPrefab: {fileID: 2533670670375867659, guid: bc7f4c57fa1fd5843978b8d8c5e4245b, type: 3}
+  disappearingGroundPrefab: {fileID: 0}
   goalPrefab: {fileID: 1943847594534145169, guid: 12c54e06ec140b34681efead8b5ab77c, type: 3}
   player: {fileID: 1559668194}
   spawnAmount: 11
   step: {x: 4.25, y: 7.5}
+  baseDisappearTime: 3
+  timePerHeight: 0.5
+  fadeOutDuration: 1
+  pathCount: 1
+  pathSpacing: 8
+  mergeHeight: 0.7
+  minPlatformDistance: 5
+  maxPlatformDistance: 10
+  platformSizeMin: 2
+  platformSizeMax: 4
+  jumpitPlayerPrefab: {fileID: 0}
+  powerIndicatorPrefab: {fileID: 0}
 --- !u!1001 &424768554
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1129,11 +1142,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_UiScaleMode: 0
+  m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
   m_ReferenceResolution: {x: 800, y: 600}
-  m_ScreenMatchMode: 0
+  m_ScreenMatchMode: 1
   m_MatchWidthOrHeight: 0
   m_PhysicalUnit: 3
   m_FallbackScreenDPI: 96
@@ -1358,7 +1371,7 @@ MonoBehaviour:
   LoseSound: {fileID: 8300000, guid: 472a4b856ce4f48489b581113f05247d, type: 3}
 --- !u!50 &1559668196
 Rigidbody2D:
-  serializedVersion: 4
+  serializedVersion: 5
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -1369,8 +1382,8 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 1
-  m_LinearDrag: 0
-  m_AngularDrag: 0.05
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
   m_GravityScale: 1
   m_Material: {fileID: 0}
   m_IncludeLayers:

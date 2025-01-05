@@ -5,78 +5,391 @@ using DG.Tweening;
 
 public class GameManager : MonoBehaviour
 {
-    public GameObject groundPrefab; // µØÃæÔ¤ÖÆÌå
-    public GameObject goalPrefab; // ÖÕµãÔ¤ÖÆÌå
-    public GameObject player; // Íæ¼Ò¶ÔÏó
+    public GameObject groundPrefab;
+    public GameObject disappearingGroundPrefab;
+    public GameObject goalPrefab;
+    public GameObject player;
 
-    public int spawnAmount; // Éú³ÉÊıÁ¿
-    public Vector2 step = new Vector2(4.25f, 7.5f); // ²½³¤
+    public int spawnAmount;
+    public Vector2 step = new Vector2(4.25f, 7.5f);
 
-    private Vector2 playerInitialPosition; // Íæ¼Ò³õÊ¼Î»ÖÃ
+    [Header("æ¶ˆå¤±æ–¹å—è®¾ç½®")]
+    public float baseDisappearTime = 3f;
+    public float timePerHeight = 0.5f;
+    public float fadeOutDuration = 1f;
+
+    [Header("å¤šè·¯å¾„ç”Ÿæˆè®¾ç½®")]
+    public int pathCount = 1;        // ç”Ÿæˆçš„è·¯å¾„æ•°é‡
+    public float pathSpacing = 8f;   // è·¯å¾„ä¹‹é—´çš„é—´è·
+    public float mergeHeight = 0.7f; // è·¯å¾„å¼€å§‹åˆå¹¶çš„é«˜åº¦æ¯”ä¾‹(0-1)
+
+    [Header("è·³ä¸€è·³å…³å¡è®¾ç½®")]
+    public float minPlatformDistance = 5f;  // æœ€å°å¹³å°è·ç¦»
+    public float maxPlatformDistance = 10f; // æœ€å¤§å¹³å°è·ç¦»
+    public float platformSizeMin = 2f;      // æœ€å°å¹³å°å¤§å°
+    public float platformSizeMax = 4f;      // æœ€å¤§å¹³å°å¤§å°
+    public GameObject jumpitPlayerPrefab;   // è·³ä¸€è·³ç©å®¶é¢„åˆ¶ä½“
+    public GameObject powerIndicatorPrefab; // åŠ›åº¦æŒ‡ç¤ºå™¨é¢„åˆ¶ä½“
+
+    private Vector2 playerInitialPosition;
+    private int currentLevel;
+    private bool useDisappearingGround;
 
     void Start()
     {
-        playerInitialPosition = player.transform.position; // ¼ÇÂ¼Íæ¼Ò³õÊ¼Î»ÖÃ
-        SpawnNewWave(); // Éú³ÉĞÂ²¨´Î
+        playerInitialPosition = player.transform.position;
+        string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        currentLevel = int.Parse(sceneName.Split('-')[1]);
+        useDisappearingGround = currentLevel >= 4 && currentLevel <= 6;
+
+        // 1-6å…³ä½¿ç”¨æ™®é€šç”Ÿæˆé€»è¾‘
+        if (currentLevel <= 6)
+        {
+            if (useDisappearingGround)
+            {
+                SetupLevelParameters();
+            }
+            SpawnNewWave();
+        }
+        else
+        {
+            // 7-9å…³ä½¿ç”¨è·³ä¸€è·³é€»è¾‘
+            SetupJumpitPlayer();
+        }
     }
 
-    // Éú³ÉĞÂ²¨´Î
+    private void SetupLevelParameters()
+    {
+        switch (currentLevel)
+        {
+            case 4: // ç¬¬å››å…³ï¼šåŸºç¡€æ¶ˆå¤±æ–¹å—
+                if (baseDisappearTime == 3f) baseDisappearTime = 1.5f;
+                if (timePerHeight == 0.5f) timePerHeight = 0.2f;
+                if (fadeOutDuration == 1f) fadeOutDuration = 0.5f;
+                if (spawnAmount == 0) spawnAmount = 8;
+                pathCount = 1;
+                break;
+
+            case 5: // ç¬¬äº”å…³ï¼šåŠ å¿«æ¶ˆå¤±é€Ÿåº¦
+                if (baseDisappearTime == 3f) baseDisappearTime = 1.2f;
+                if (timePerHeight == 0.5f) timePerHeight = 0.15f;
+                if (fadeOutDuration == 1f) fadeOutDuration = 0.4f;
+                if (spawnAmount == 0) spawnAmount = 10;
+                pathCount = 1;
+                break;
+
+            case 6: // ç¬¬å…­å…³ï¼šæé™é€Ÿåº¦
+                if (baseDisappearTime == 3f) baseDisappearTime = 1.0f;
+                if (timePerHeight == 0.5f) timePerHeight = 0.1f;
+                if (fadeOutDuration == 1f) fadeOutDuration = 0.3f;
+                if (spawnAmount == 0) spawnAmount = 12;
+                pathCount = 1;
+                break;
+
+        }
+    }
+
     void SpawnNewWave()
     {
-        List<Vector2> mainPath = new List<Vector2>(); // Ö÷Â·¾¶
-        Vector2 spawnPos = Vector2.zero; // ³õÊ¼Éú³ÉÎ»ÖÃ
+        List<List<Vector2>> allPaths = new List<List<Vector2>>();
+        HashSet<Vector2> occupiedPositions = new HashSet<Vector2>();
 
-        // Éú³ÉÖ÷Â·¾¶
-        for (int i = 0; i < spawnAmount; i++)
+        // ç”Ÿæˆèµ·å§‹æ–¹å—
+        Vector2 firstPos = Vector2.zero;
+        SpawnGround(firstPos, 0);
+        occupiedPositions.Add(firstPos);
+
+        // è®¡ç®—å¤šè·¯å¾„çš„å®½åº¦
+        float pathWidth = (pathCount - 1) * step.x;
+        float startX = -pathWidth * 0.5f;
+
+        // ç”Ÿæˆæ¯æ¡ä¸»è·¯å¾„
+        for (int p = 0; p < pathCount; p++)
         {
-            int randomDir = Random.Range(0f, 1f) > 0.5f ? 1 : -1; // Ëæ»ú·½Ïò
-            spawnPos += new Vector2(step.x * randomDir, step.y); // ¸üĞÂÉú³ÉÎ»ÖÃ
-            mainPath.Add(spawnPos); // Ìí¼Óµ½Ö÷Â·¾¶ÁĞ±í
+            List<Vector2> mainPath = new List<Vector2>();
+            Vector2 spawnPos = firstPos;
+            mainPath.Add(spawnPos);
 
-            GameObject ground = Instantiate(groundPrefab, spawnPos - Vector2.up * 2f, Quaternion.identity); // ÊµÀı»¯µØÃæ
-            ground.transform.SetParent(transform); // ÉèÖÃ¸¸¼¶
-            ground.transform.DOMove(ground.transform.position + Vector3.up * 2f, 0.5f).SetDelay(i * 0.1f); // ¶¯»­ÒÆ¶¯
+            // å¦‚æœä¸æ˜¯ç¬¬ä¸€æ¡è·¯å¾„ï¼Œéœ€è¦ç”Ÿæˆèµ·å§‹ç‚¹
+            if (p > 0)
+            {
+                // ä¸ºæ¯æ¡è·¯å¾„åˆ›å»ºä¸€ä¸ªåç§»çš„èµ·å§‹ç‚¹ï¼Œç¡®ä¿è·¯å¾„åˆ†å¼€
+                spawnPos = firstPos + new Vector2(startX + p * step.x, step.y);
+                if (!occupiedPositions.Contains(spawnPos))
+                {
+                    SpawnGround(spawnPos, 1);
+                    occupiedPositions.Add(spawnPos);
+                    mainPath.Add(spawnPos);
+                }
+            }
+
+            // ç”Ÿæˆä¸»è·¯å¾„æ–¹å—
+            for (int i = mainPath.Count; i < spawnAmount - 1; i++)
+            {
+                float progress = (float)i / spawnAmount;
+                Vector2 nextPos;
+
+                if (progress > mergeHeight)
+                {
+                    // åœ¨åˆå¹¶é«˜åº¦ä¹‹åï¼Œè·¯å¾„å¼€å§‹å‘ä¸­å¿ƒé æ‹¢
+                    float targetX = 0;
+                    float currentX = spawnPos.x;
+
+                    // æ ¹æ®å½“å‰ä½ç½®å†³å®šä¸‹ä¸€ä¸ªæ–¹å—çš„ä½ç½®
+                    if (Mathf.Abs(currentX) <= step.x)
+                    {
+                        // å¦‚æœå·²ç»æ¥è¿‘ä¸­å¿ƒï¼Œç›´æ¥å‘ä¸­å¿ƒç§»åŠ¨
+                        nextPos = spawnPos + new Vector2(currentX > 0 ? -step.x : step.x, step.y);
+                    }
+                    else
+                    {
+                        // å¦åˆ™ç»§ç»­å‘ä¸­å¿ƒé æ‹¢
+                        float moveX = Mathf.Sign(targetX - currentX) * step.x;
+                        nextPos = spawnPos + new Vector2(moveX, step.y);
+                    }
+                }
+                else
+                {
+                    // åœ¨åˆå¹¶é«˜åº¦ä¹‹å‰ï¼Œè·¯å¾„ä¿æŒç›¸å¯¹ç‹¬ç«‹
+                    float pathX = startX + p * step.x;
+                    float currentX = spawnPos.x;
+
+                    // éšæœºå†³å®šä¸‹ä¸€ä¸ªæ–¹å—çš„æ–¹å‘
+                    int randomDir = Random.Range(0f, 1f) > 0.5f ? 1 : -1;
+                    if (Mathf.Abs(currentX - pathX) > step.x)
+                    {
+                        // å¦‚æœåç¦»å¤ªè¿œï¼Œå¼ºåˆ¶å‘è·¯å¾„ä¸­å¿ƒå›å½’
+                        randomDir = (int)Mathf.Sign(pathX - currentX);
+                    }
+
+                    nextPos = spawnPos + new Vector2(step.x * randomDir, step.y);
+
+                    // éšæœºç”Ÿæˆåˆ†æ”¯è·¯å¾„
+                    if (Random.Range(0f, 1f) > 0.85f)
+                    {
+                        Vector2 branchPos = spawnPos + new Vector2(step.x * -randomDir, step.y);
+                        if (!occupiedPositions.Contains(branchPos) &&
+                            Mathf.Abs(branchPos.x - pathX) <= step.x * 1.5f)
+                        {
+                            SpawnGround(branchPos, i);
+                            occupiedPositions.Add(branchPos);
+                        }
+                    }
+                }
+
+                // ç”Ÿæˆä¸‹ä¸€ä¸ªæ–¹å—
+                if (!occupiedPositions.Contains(nextPos))
+                {
+                    SpawnGround(nextPos, i);
+                    occupiedPositions.Add(nextPos);
+                    spawnPos = nextPos;
+                    mainPath.Add(spawnPos);
+                }
+                else
+                {
+                    // å¦‚æœä½ç½®è¢«å ç”¨ï¼Œå°è¯•åæ–¹å‘ç”Ÿæˆ
+                    nextPos = spawnPos + new Vector2(-step.x * Mathf.Sign(nextPos.x - spawnPos.x), step.y);
+                    if (!occupiedPositions.Contains(nextPos))
+                    {
+                        SpawnGround(nextPos, i);
+                        occupiedPositions.Add(nextPos);
+                        spawnPos = nextPos;
+                        mainPath.Add(spawnPos);
+                    }
+                }
+            }
+            allPaths.Add(mainPath);
         }
 
-        // Éú³É·ÖÖ§
-        for (int i = 1; i < spawnAmount - 1; i++)
+        // åœ¨è·¯å¾„ä¹‹é—´éšæœºç”Ÿæˆè¿æ¥æ–¹å—
+        if (pathCount > 1)
         {
-            int branches = Random.Range(1, 3); // Éú³ÉÖ§Â·
-            for (int j = 0; j < branches; j++)
+            for (int i = 2; i < spawnAmount - 2; i++)
             {
-                Vector2 branchPos = mainPath[i]; // ·ÖÖ§Î»ÖÃ
-                int randomDir = Random.Range(0f, 1f) > 0.5f ? 1 : -1; // Ëæ»ú·½Ïò
-                branchPos += new Vector2(step.x * randomDir, step.y); // ¸üĞÂ·ÖÖ§Î»ÖÃ
-
-                GameObject ground = Instantiate(groundPrefab, branchPos - Vector2.up * 2f, Quaternion.identity); // ÊµÀı»¯µØÃæ
-                ground.transform.SetParent(transform); // ÉèÖÃ¸¸¼¶
-                ground.transform.DOMove(ground.transform.position + Vector3.up * 2f, 0.5f).SetDelay((i + j + 1) * 0.1f); // ¶¯»­ÒÆ¶¯
-
-                // È·±£·ÖÖ§ÖØĞÂÁ¬½Óµ½Ö÷Â·¾¶
-                if (j == branches - 1)
+                float progress = (float)i / spawnAmount;
+                if (progress < mergeHeight && Random.Range(0f, 1f) > 0.8f)
                 {
-                    branchPos = mainPath[i + 1]; // ·ÖÖ§ÖØĞÂÁ¬½ÓÎ»ÖÃ
-                    GameObject reconnectGround = Instantiate(groundPrefab, branchPos - Vector2.up * 2f, Quaternion.identity); // ÊµÀı»¯µØÃæ
-                    reconnectGround.transform.SetParent(transform); // ÉèÖÃ¸¸¼¶
-                    reconnectGround.transform.DOMove(reconnectGround.transform.position + Vector3.up * 2f, 0.5f).SetDelay((i + j + 1) * 0.1f); // ¶¯»­ÒÆ¶¯
+                    for (int p = 0; p < pathCount - 1; p++)
+                    {
+                        if (i < allPaths[p].Count && i < allPaths[p + 1].Count)
+                        {
+                            Vector2 startPoint = allPaths[p][i];
+                            Vector2 endPoint = allPaths[p + 1][i];
+
+                            // ç”Ÿæˆè¿æ¥æ–¹å—
+                            if (Vector2.Distance(startPoint, endPoint) <= step.x * 2)
+                            {
+                                Vector2 connectionPoint = Vector2.Lerp(startPoint, endPoint, 0.5f);
+                                if (!occupiedPositions.Contains(connectionPoint))
+                                {
+                                    SpawnGround(connectionPoint, i);
+                                    occupiedPositions.Add(connectionPoint);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        // ÔÚÖ÷Â·¾¶Ä©Î²ÉèÖÃÖÕµã
-        Vector2 finalPos = mainPath[mainPath.Count - 1]; // ×îÖÕÎ»ÖÃ
-        Vector2 goalPos = finalPos + new Vector2(step.x, step.y); // ÑÓÉìÒ»¸ñºóµÄÖÕµãÎ»ÖÃ
-        GameObject goal = Instantiate(goalPrefab, goalPos - Vector2.up * 2f, Quaternion.identity); // ÊµÀı»¯ÖÕµã
-        goal.transform.SetParent(transform); // ÉèÖÃ¸¸¼¶
-        goal.transform.DOMove(goal.transform.position + Vector3.up * 2f, 0.5f).SetDelay(spawnAmount * 0.1f); // ¶¯»­ÒÆ¶¯
+        // æ‰¾åˆ°æœ€é«˜çš„è·¯å¾„ç»ˆç‚¹
+        float maxY = 0;
+        Vector2 lastPos = Vector2.zero;
+        foreach (var path in allPaths)
+        {
+            if (path.Count > 0)
+            {
+                Vector2 pathEnd = path[path.Count - 1];
+                if (pathEnd.y > maxY)
+                {
+                    maxY = pathEnd.y;
+                    lastPos = pathEnd;
+                }
+            }
+        }
+
+        // åœ¨æœ€é«˜ç‚¹ç”Ÿæˆæœ€åä¸€ä¸ªå¹³å°
+        Vector2 finalPos = lastPos + new Vector2(lastPos.x > 0 ? -step.x : step.x, step.y);
+        if (!occupiedPositions.Contains(finalPos))
+        {
+            SpawnGround(finalPos, spawnAmount - 1);
+            occupiedPositions.Add(finalPos);
+        }
+
+        // ç”Ÿæˆç»ˆç‚¹æ–¹å—ï¼Œç¡®ä¿ä¸æœ€åä¸€ä¸ªå¹³å°ç›¸è¿
+        Vector2 goalPos = finalPos + new Vector2(finalPos.x > 0 ? -step.x : step.x, step.y);
+        if (!occupiedPositions.Contains(goalPos))
+        {
+            GameObject goal = Instantiate(goalPrefab, goalPos - Vector2.up * 2f, Quaternion.identity);
+            goal.transform.SetParent(transform);
+            goal.transform.DOMove(goal.transform.position + Vector3.up * 2f, 0.5f).SetDelay(spawnAmount * 0.1f);
+        }
     }
 
-    // ÖØÖÃÍæ¼ÒÎ»ÖÃµÄ·½·¨
+    private void SpawnGround(Vector2 position, int index)
+    {
+        // æ£€æŸ¥æ˜¯å¦å·²ç»æœ‰ç©å®¶åœ¨è¯¥ä½ç½®
+        JumpitPlayerController existingPlayer = FindObjectOfType<JumpitPlayerController>();
+        if (existingPlayer != null && Vector2.Distance(existingPlayer.transform.position, position) < 0.1f)
+        {
+            // å¦‚æœè¯¥ä½ç½®æœ‰ç©å®¶ï¼Œå°±ä¸ç”Ÿæˆæ–¹å—
+            return;
+        }
+
+        // è®¡ç®—åŠ¨ç”»å»¶è¿Ÿ
+        float animationDelay = 0.1f;
+        if (currentLevel >= 7)
+        {
+            float heightProgress = position.y / (spawnAmount * step.y);
+            animationDelay = heightProgress * 0.5f;
+        }
+        else
+        {
+            animationDelay = index * 0.1f;
+        }
+
+        GameObject ground = Instantiate(
+            useDisappearingGround ? disappearingGroundPrefab : groundPrefab,
+            position,
+            Quaternion.identity
+        );
+        ground.transform.SetParent(transform);
+
+        // è®¾ç½®åˆå§‹ç¼©æ”¾ä¸º0
+        ground.transform.localScale = Vector3.zero;
+
+        // ä½¿ç”¨ç¼©æ”¾åŠ¨ç”»
+        ground.transform.DOScale(Vector3.one, 0.3f)
+            .SetEase(Ease.OutBack)
+            .SetDelay(animationDelay);
+
+        if (useDisappearingGround)
+        {
+            DisappearingGround disappearingGround = ground.GetComponent<DisappearingGround>();
+            if (disappearingGround != null)
+            {
+                disappearingGround.Initialize(baseDisappearTime, timePerHeight, fadeOutDuration, animationDelay + 0.3f);
+            }
+        }
+    }
+
     public void ResetPlayerPosition()
     {
-        player.transform.position = playerInitialPosition; // ÖØÖÃÍæ¼ÒÎ»ÖÃ
-        var playerController = player.GetComponent<PlayerController>(); // »ñÈ¡Íæ¼Ò¿ØÖÆÆ÷×é¼ş
-        playerController.SetHasDied(false); // ÖØÖÃÍæ¼ÒµÄËÀÍö×´Ì¬
-        playerController.ResetGame(); // ÖØÖÃÓÎÏ·×´Ì¬
+        // è·å–å½“å‰ç©å®¶
+        JumpitPlayerController jumpitPlayer = FindObjectOfType<JumpitPlayerController>();
+        if (jumpitPlayer != null)
+        {
+            // ç¡®ä¿ç©å®¶ä½ç½®æ­£ç¡®
+            jumpitPlayer.SetStartPosition(new Vector3(0, 3.5f, 0));
+            // é‡ç½®ç©å®¶çš„æ‰€æœ‰çŠ¶æ€
+            jumpitPlayer.ResetGame();
+            return;
+        }
+
+        // å¦‚æœæ˜¯æ™®é€šç©å®¶ï¼Œä½¿ç”¨åŸå§‹é‡ç½®é€»è¾‘
+        if (player != null)
+        {
+            player.transform.position = playerInitialPosition;
+            player.GetComponent<Rigidbody2D>().linearVelocity = Vector2.zero;
+        }
+
+        // æ¸…é™¤æ‰€æœ‰ç”Ÿæˆçš„æ–¹å—
+        foreach (Transform child in transform)
+        {
+            if (child.gameObject != player && child.GetComponent<JumpitPlayerController>() == null)
+            {
+                Destroy(child.gameObject);
+            }
+        }
+
+        // é‡æ–°ç”Ÿæˆå…³å¡ï¼ˆä»…é™1-6å…³ï¼‰
+        if (currentLevel <= 6)
+        {
+            SpawnNewWave();
+        }
+    }
+
+    private void SetupJumpitPlayer()
+    {
+        // ç¦ç”¨åŸç‰ˆç©å®¶
+        if (player != null)
+        {
+            player.SetActive(false);
+        }
+
+        // è®¾ç½®å‡ºç”Ÿä½ç½®
+        Vector3 spawnPosition = new Vector3(0, 3.5f, 0);
+
+        // æ£€æŸ¥æ˜¯å¦å·²å­˜åœ¨JumpitPlayer
+        JumpitPlayerController existingPlayer = FindObjectOfType<JumpitPlayerController>();
+        if (existingPlayer != null)
+        {
+            // å¦‚æœå­˜åœ¨ï¼Œç›´æ¥é‡ç½®
+            existingPlayer.SetStartPosition(spawnPosition);
+            existingPlayer.ResetGame();
+            return;
+        }
+
+        // å¦‚æœä¸å­˜åœ¨ï¼Œåˆ›å»ºæ–°çš„ç©å®¶
+        GameObject jumpitPlayer = Instantiate(jumpitPlayerPrefab, spawnPosition, Quaternion.identity);
+        jumpitPlayer.transform.SetParent(transform);
+
+        // è®¾ç½®ç©å®¶æ§åˆ¶å™¨
+        JumpitPlayerController controller = jumpitPlayer.GetComponent<JumpitPlayerController>();
+        if (controller != null)
+        {
+            controller.SetStartPosition(spawnPosition);
+        }
+
+        // åˆ›å»ºåŠ›åº¦æŒ‡ç¤ºå™¨
+        if (powerIndicatorPrefab != null)
+        {
+            GameObject powerIndicator = Instantiate(powerIndicatorPrefab, jumpitPlayer.transform);
+            powerIndicator.transform.localPosition = new Vector3(0, 1, 0);
+            if (controller != null)
+            {
+                controller.powerIndicator = powerIndicator;
+            }
+        }
     }
 }

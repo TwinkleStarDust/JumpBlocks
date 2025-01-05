@@ -408,10 +408,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   groundPrefab: {fileID: 2533670670375867659, guid: bc7f4c57fa1fd5843978b8d8c5e4245b, type: 3}
+  disappearingGroundPrefab: {fileID: 2533670670375867659, guid: 465206d3bda3b244ebef16a5bf479ccd, type: 3}
   goalPrefab: {fileID: 1943847594534145169, guid: 12c54e06ec140b34681efead8b5ab77c, type: 3}
   player: {fileID: 1559668194}
-  spawnAmount: 23
+  spawnAmount: 38
   step: {x: 4.25, y: 7.5}
+  baseDisappearTime: 0.3
+  timePerHeight: 0.12
+  fadeOutDuration: 1
+  pathCount: 1
+  pathSpacing: 8
+  mergeHeight: 0.7
+  minPlatformDistance: 5
+  maxPlatformDistance: 10
+  platformSizeMin: 2
+  platformSizeMax: 4
+  jumpitPlayerPrefab: {fileID: 0}
+  powerIndicatorPrefab: {fileID: 0}
 --- !u!1001 &424768554
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1080,6 +1093,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b199b81664af5b4c88d90057c505cb5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  smoothSpeed: 5
+  offset: {x: 0, y: 0, z: -10}
 --- !u!1 &1133701004
 GameObject:
   m_ObjectHideFlags: 0

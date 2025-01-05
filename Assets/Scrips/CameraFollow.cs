@@ -1,21 +1,46 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class CameraFollow : MonoBehaviour
 {
-    Transform target;
-    Vector3 offset;
+    public float smoothSpeed = 5f;
+    public Vector3 offset = new Vector3(0, 0, -10);
 
-    void Start()
+    private Transform target;
+
+    private void Start()
     {
-        target = GameObject.FindGameObjectWithTag("Player").transform;
-        offset = transform.position - target.position;
+        // 初始化时先找到原始玩家
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            target = player.transform;
+        }
     }
 
-    void LateUpdate()
+    private void LateUpdate()
     {
-        Vector3 targetPos = target.position + offset;
-        transform.position=Vector3.Lerp(transform.position, targetPos, Time.deltaTime);
+        // 如果目标丢失，尝试重新查找玩家
+        if (target == null)
+        {
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null)
+            {
+                target = player.transform;
+            }
+            return;
+        }
+
+        // 计算目标位置
+        Vector3 desiredPosition = target.position + offset;
+
+        // 平滑移动到目标位置
+        Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime);
+        transform.position = smoothedPosition;
+    }
+
+    // 提供一个方法让其他脚本可以更新跟随目标
+    public void SetTarget(Transform newTarget)
+    {
+        target = newTarget;
     }
 }

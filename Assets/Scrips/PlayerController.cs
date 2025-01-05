@@ -18,43 +18,52 @@ public class PlayerController : MonoBehaviour
 
     private Vector2 initialPosition;
     private WinManager winManager;
-    private SettingsMenu settingsMenu; 
+    private SettingsMenu settingsMenu;
 
-    public AudioClip jumpSound; 
-    public AudioClip WinSound; 
-    public AudioClip LoseSound; 
+    public AudioClip jumpSound;
+    public AudioClip WinSound;
+    public AudioClip LoseSound;
 
-    private AudioSource audioSource; // 新增：音频源
+    private AudioSource audioSource;
+
+    void Awake()
+    {
+        // 在Awake中获取WinManager引用
+        winManager = FindObjectOfType<WinManager>();
+        if (winManager == null)
+        {
+            Debug.LogError("Cannot find WinManager in the scene!");
+        }
+    }
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         step = FindObjectOfType<GameManager>().step;
         initialPosition = transform.position; // 记录初始位置
-        winManager = FindObjectOfType<WinManager>(); 
-        settingsMenu = FindObjectOfType<SettingsMenu>(); 
+        settingsMenu = FindObjectOfType<SettingsMenu>();
 
-        audioSource = gameObject.AddComponent<AudioSource>(); 
+        audioSource = gameObject.AddComponent<AudioSource>();
         audioSource.volume = 0.3f; // 设置音量
     }
 
     void Update()
     {
-        if (hasFinished || hasDied) // 如果游戏结束或玩家死亡，停止输入检测
+        if (hasFinished) // 只在胜利时停止输入检测，死亡时仍然可以继续
             return;
 
-        if (!gameStarted && (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow)))
+        if (!gameStarted && (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.D)))
         {
             gameStarted = true;
-            startTime = Time.timeSinceLevelLoad; // 记录游戏开始时间
+            startTime = Time.timeSinceLevelLoad;
         }
 
         if (animIsPlaying)
             return;
 
-        if (Input.GetKeyDown(KeyCode.RightArrow))
+        if (Input.GetKeyDown(KeyCode.D))
             inputKeyIndex = 1;
-        else if (Input.GetKeyDown(KeyCode.LeftArrow))
+        else if (Input.GetKeyDown(KeyCode.A))
             inputKeyIndex = -1;
     }
 
@@ -64,7 +73,6 @@ public class PlayerController : MonoBehaviour
         {
             if (settingsMenu != null && settingsMenu.IsSFXEnabled())
             {
-                // 播放跳跃音效
                 audioSource.PlayOneShot(jumpSound);
             }
 
@@ -75,20 +83,21 @@ public class PlayerController : MonoBehaviour
 
         if (gameStarted && !animIsPlaying)
         {
-            if (!hasFinished && Physics2D.CircleCast(transform.position, 0.2f, Vector2.zero, 0f, LayerMask.GetMask("Goal")))
+            // 检查是否到达终点
+            if (!hasFinished && !hasDied && Physics2D.CircleCast(transform.position, 0.2f, Vector2.zero, 0f, LayerMask.GetMask("Goal")))
             {
-                print("牛逼，你的通关时间是：" + (Time.timeSinceLevelLoad - startTime));
-                hasFinished = true; // 标记为已通关
+                float completionTime = Time.timeSinceLevelLoad - startTime;
+                print("你的通关时间是：" + completionTime);
+                hasFinished = true;
 
                 if (settingsMenu != null && settingsMenu.IsSFXEnabled())
                 {
-                    // 播放成功音效
                     audioSource.PlayOneShot(WinSound);
                 }
 
                 if (winManager != null)
                 {
-                    winManager.ShowWinPanel(Time.timeSinceLevelLoad - startTime); // 显示胜利面板
+                    winManager.ShowWinPanel(completionTime);
                 }
                 else
                 {
@@ -96,40 +105,44 @@ public class PlayerController : MonoBehaviour
                 }
             }
 
+            // 检查是否掉落
             if (!hasFinished && !Physics2D.CircleCast(transform.position, 0.2f, Vector2.down, 0.1f))
             {
                 fallTime += Time.deltaTime;
                 if (!hasDied && fallTime >= fallThreshold)
                 {
-                    print("你死了，你的存活时间是：" + (Time.timeSinceLevelLoad - startTime));
-                    hasDied = true; // 标记为已死亡
-                    FindObjectOfType<GameManager>().ResetPlayerPosition(); // 重置玩家位置
+                    print("你死了");
+                    hasDied = true;
 
                     if (settingsMenu != null && settingsMenu.IsSFXEnabled())
                     {
-                        // 播放失败音效
                         audioSource.PlayOneShot(LoseSound);
                     }
+
+                    FindObjectOfType<GameManager>().ResetPlayerPosition();
+                    ResetGame(); // 重置游戏状态，允许继续游戏
                 }
             }
             else
             {
-                fallTime = 0f; // 如果玩家在地面上，重置掉落计时器
+                fallTime = 0f;
             }
         }
     }
 
-    // 公共方法，用于设置玩家死亡状态
+    // 设置玩家死亡状态
     public void SetHasDied(bool value)
     {
         hasDied = value;
     }
 
-    // 公共方法，用于重置游戏状态
+    // 重置游戏状态
     public void ResetGame()
     {
         hasFinished = false;
         hasDied = false;
         gameStarted = false;
+        fallTime = 0f;
+        startTime = Time.timeSinceLevelLoad;
     }
 }

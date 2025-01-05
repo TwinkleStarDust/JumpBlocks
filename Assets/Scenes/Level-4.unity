@@ -408,10 +408,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   groundPrefab: {fileID: 2533670670375867659, guid: bc7f4c57fa1fd5843978b8d8c5e4245b, type: 3}
+  disappearingGroundPrefab: {fileID: 2533670670375867659, guid: 465206d3bda3b244ebef16a5bf479ccd, type: 3}
   goalPrefab: {fileID: 1943847594534145169, guid: 12c54e06ec140b34681efead8b5ab77c, type: 3}
   player: {fileID: 1559668194}
-  spawnAmount: 23
+  spawnAmount: 11
   step: {x: 4.25, y: 7.5}
+  baseDisappearTime: 0.5
+  timePerHeight: 0.2
+  fadeOutDuration: 1
+  pathCount: 1
+  pathSpacing: 8
+  mergeHeight: 0.7
 --- !u!1001 &424768554
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1507,7 +1514,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1030925880503674223, guid: bc7f4c57fa1fd5843978b8d8c5e4245b, type: 3}
       propertyPath: m_SortingOrder
-      value: -23
+      value: -30
       objectReference: {fileID: 0}
     - target: {fileID: 1030925880503674223, guid: bc7f4c57fa1fd5843978b8d8c5e4245b, type: 3}
       propertyPath: m_SortingLayerID
